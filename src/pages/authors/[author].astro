@@ -20,12 +20,12 @@ export async function getStaticPaths() {
   ];
 
   // Get unique authors
-  const authors = Array.from(new Set(allItems.flatMap(item => item.data.author || 'AI Learnings Team')));
+  const authors = Array.from(new Set(allItems.flatMap(item => item.data.author || 'Mohan Sai Puttagunta')));
 
   return authors.map(author => {
     const authorSlug = author.toLowerCase().replace(/\s+/g, '-');
     const filteredItems = allItems.filter(item => 
-      (item.data.author || 'AI Learnings Team').toLowerCase().replace(/\s+/g, '-') === authorSlug
+      (item.data.author || 'Mohan Sai Puttagunta').toLowerCase().replace(/\s+/g, '-') === authorSlug
     );
     
     return {

@@ -75,8 +75,8 @@ export const MICROSOFT_CLARITY_ID = "clarity-placeholder-id";
 
 // Default Authors
 export const DEFAULT_AUTHOR = {
-  name: "AI Engineering Lead",
-  avatar: "/images/authors/ai-lead.webp",
+  name: "Mohan Sai Puttagunta",
+  avatar: "/images/authors/mohan-sai.webp",
   bio: "AI Researcher and Systems Architect writing about frontier LLMs, autonomous agents, and production machine learning.",
-  twitter: "ai_learnings"
+  twitter: "mohan9995"
 };

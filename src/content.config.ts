@@ -10,7 +10,7 @@ const faqSchema = z.object({
 const baseSchema = z.object({
   title: z.string(),
   description: z.string(),
-  author: z.string().default("AI Learnings Team"),
+  author: z.string().default("Mohan Sai Puttagunta"),
   pubDate: z.coerce.date(),
   updatedDate: z.coerce.date().optional(),
   tags: z.array(z.string()).default([]),
