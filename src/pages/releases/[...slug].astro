@@ -1,0 +1,30 @@
+---
+import { getCollection, render } from 'astro:content';
+import ArticleLayout from '../../layouts/ArticleLayout.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('releases');
+  return entries.map(entry => ({
+    params: { slug: entry.id.replace(/\.[^/.]+$/, "") },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content, headings } = await render(entry);
+---
+<ArticleLayout entry={entry} collectionName="releases" headings={headings}>
+  <!-- Release Metadata Summary Frame -->
+  <div class="mb-6 p-4 rounded-apple border border-border-site bg-card-site flex items-center justify-between flex-wrap gap-4">
+    <div class="flex items-center gap-3">
+      <span class="text-xs font-bold text-muted-text uppercase tracking-wider">Release Version:</span>
+      <span class="rounded bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">{entry.data.version}</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="text-xs font-bold text-muted-text uppercase tracking-wider">Upgrade Scope:</span>
+      <span class="rounded bg-accent/10 px-2 py-0.5 text-xs font-bold text-accent">{entry.data.type} Update</span>
+    </div>
+  </div>
+
+  <Content />
+</ArticleLayout>

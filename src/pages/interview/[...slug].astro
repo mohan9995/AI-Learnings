@@ -1,0 +1,30 @@
+---
+import { getCollection, render } from 'astro:content';
+import ArticleLayout from '../../layouts/ArticleLayout.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('interview');
+  return entries.map(entry => ({
+    params: { slug: entry.id.replace(/\.[^/.]+$/, "") },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content, headings } = await render(entry);
+---
+<ArticleLayout entry={entry} collectionName="interview" headings={headings}>
+  <!-- Prep Metadata Summary Frame -->
+  <div class="mb-6 p-4 rounded-apple border border-border-site bg-card-site flex items-center justify-between flex-wrap gap-4">
+    <div class="flex items-center gap-3">
+      <span class="text-xs font-bold text-muted-text uppercase tracking-wider">Focus Topic:</span>
+      <span class="rounded bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">{entry.data.topic}</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="text-xs font-bold text-muted-text uppercase tracking-wider">Difficulty Level:</span>
+      <span class="rounded bg-accent/10 px-2 py-0.5 text-xs font-bold text-accent">{entry.data.difficulty}</span>
+    </div>
+  </div>
+
+  <Content />
+</ArticleLayout>

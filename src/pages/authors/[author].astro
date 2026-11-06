@@ -1,0 +1,88 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getCollection } from "astro:content";
+
+export async function getStaticPaths() {
+  const blogs = await getCollection("blogs");
+  const tutorials = await getCollection("tutorials");
+  const prompts = await getCollection("prompts");
+  const architecture = await getCollection("architecture");
+  const releases = await getCollection("releases");
+  const interview = await getCollection("interview");
+
+  const allItems = [
+    ...blogs.map(b => ({ ...b, categoryName: 'blogs' })),
+    ...tutorials.map(t => ({ ...t, categoryName: 'tutorials' })),
+    ...prompts.map(p => ({ ...p, categoryName: 'prompts' })),
+    ...architecture.map(arc => ({ ...arc, categoryName: 'architecture' })),
+    ...releases.map(r => ({ ...r, categoryName: 'releases' })),
+    ...interview.map(i => ({ ...i, categoryName: 'interview' })),
+  ];
+
+  // Get unique authors
+  const authors = Array.from(new Set(allItems.flatMap(item => item.data.author || 'AI Learnings Team')));
+
+  return authors.map(author => {
+    const authorSlug = author.toLowerCase().replace(/\s+/g, '-');
+    const filteredItems = allItems.filter(item => 
+      (item.data.author || 'AI Learnings Team').toLowerCase().replace(/\s+/g, '-') === authorSlug
+    );
+    
+    return {
+      params: { author: authorSlug },
+      props: { author, items: filteredItems }
+    };
+  });
+}
+
+const { author, items } = Astro.props;
+---
+
+<BaseLayout title={`Articles by ${author}`} description={`Read all AI engineering articles, tutorials, and guides written by ${author} on AI Learnings.`}>
+  <div class="mx-auto max-w-5xl px-6 py-14 sm:px-8 lg:px-12">
+    <div class="flex flex-col gap-4 border-b border-border-site pb-8 mb-8">
+      <div class="flex items-center gap-2 text-xs text-muted-text">
+        <a href="/" class="hover:underline">Home</a>
+        <span>/</span>
+        <span>Authors</span>
+        <span>/</span>
+        <span class="text-foreground font-semibold">{author}</span>
+      </div>
+      <h1 class="font-heading font-extrabold text-3xl sm:text-5xl tracking-tight text-foreground">
+        Authored by <span class="text-primary">{author}</span>
+      </h1>
+      <p class="text-base text-muted-text max-w-2xl font-normal">
+        A collection of {items.length} engineering articles, deep dives, and tutorials published by {author}.
+      </p>
+    </div>
+
+    <!-- Articles Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {items.map((item) => (
+        <a href={`/${item.categoryName}/${item.id.replace(/\.[^/.]+$/, "")}`} class="flex flex-col justify-between rounded-apple border border-border-site p-6 hover:border-primary/50 hover:shadow-xl hover:shadow-primary/5 transition-all bg-card-site group">
+          <div class="flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <span class="rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-mono font-semibold text-primary uppercase">
+                {item.categoryName}
+              </span>
+              <time datetime={item.data.pubDate.toISOString()} class="text-xs text-muted-text">
+                {item.data.pubDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </time>
+            </div>
+            <h2 class="font-heading font-bold text-base text-foreground group-hover:text-primary leading-snug transition-colors">
+              {item.data.title}
+            </h2>
+            <p class="text-xs sm:text-sm text-muted-text line-clamp-3 leading-relaxed">
+              {item.data.description}
+            </p>
+          </div>
+          <div class="mt-6 border-t border-border-site/60 pt-4 flex items-center justify-end text-xs">
+            <span class="font-bold text-primary group-hover:translate-x-1 transition-transform flex items-center gap-1">
+              Read Entry &rarr;
+            </span>
+          </div>
+        </a>
+      ))}
+    </div>
+  </div>
+</BaseLayout>

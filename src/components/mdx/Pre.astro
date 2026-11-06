@@ -1,0 +1,61 @@
+---
+const { class: className, ...props } = Astro.props;
+
+// Shiki outputs data-language on the pre tag.
+// Markdown attributes like filename="somefile.js" are also passed.
+const rawLang = props['data-language'] || '';
+const filename = props['data-filename'] || props.filename || '';
+
+const isMermaid = rawLang.toLowerCase() === 'mermaid';
+
+// Format language output nicely
+const langMap: Record<string, string> = {
+  python: "Python",
+  py: "Python",
+  typescript: "TypeScript",
+  ts: "TypeScript",
+  javascript: "JavaScript",
+  js: "JavaScript",
+  json: "JSON",
+  bash: "Bash",
+  shell: "Shell",
+  sh: "Shell",
+  rust: "Rust",
+  sql: "SQL",
+  dockerfile: "Dockerfile",
+  xml: "XML",
+  html: "HTML",
+  css: "CSS",
+  yaml: "YAML",
+  yml: "YAML",
+  markdown: "Markdown",
+  mdx: "MDX",
+  apex: "Apex",
+  soql: "SOQL"
+};
+
+const lang = langMap[rawLang.toLowerCase()] || rawLang;
+---
+{isMermaid ? (
+  <pre class="mermaid bg-muted/20 p-4 border border-border-site rounded-apple overflow-x-auto text-center font-mono text-xs my-6 select-none"><slot /></pre>
+) : (
+  <div class="code-block-container not-prose my-6 border border-border-site rounded-apple overflow-hidden">
+    <div class="code-block-header flex items-center justify-between bg-muted border-b border-border-site px-4 py-2 text-xs font-mono text-muted-text">
+      <div class="flex items-center gap-2">
+        {lang && (
+          <span class="uppercase font-bold text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+            {lang}
+          </span>
+        )}
+        {filename && <span class="text-xs text-muted-text font-normal">{filename}</span>}
+      </div>
+      <button class="copy-code-btn flex items-center gap-1 border border-border-site rounded px-2 py-0.5 text-[10px] font-sans cursor-pointer hover:bg-border-site hover:text-foreground transition-all">
+        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+        </svg>
+        <span class="copy-btn-text">Copy</span>
+      </button>
+    </div>
+    <pre class={`${className || ''} p-4 !my-0 !rounded-none overflow-x-auto`} {...props}><slot /></pre>
+  </div>
+)}

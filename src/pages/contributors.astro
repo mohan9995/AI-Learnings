@@ -1,0 +1,73 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const contributors = [
+  {
+    name: "Mohan Sai Puttagunta",
+    role: "Lead AI & Systems Architect",
+    company: "AI Learnings Core",
+    bio: "Focuses on reasoning models, test-time compute, agent orchestration, and Model Context Protocol integrations.",
+    avatar: "M"
+  },
+  {
+    name: "Neural Systems Researcher",
+    role: "RAG & Vector Search Lead",
+    company: "Information Retrieval Lab",
+    bio: "Specializes in hybrid BM25 + dense vector indexing, reciprocal rank fusion, late-chunking, and cross-encoders.",
+    avatar: "N"
+  },
+  {
+    name: "Agentic Engineer",
+    role: "Autonomous Workflows Specialist",
+    company: "Open AI Systems",
+    bio: "Builds multi-agent supervisor systems, tool-calling evaluation benchmarks, and deterministic JSON schemas.",
+    avatar: "A"
+  }
+];
+---
+
+<BaseLayout title="AI Learnings Contributors" description="Meet the researchers, engineers, and practitioners contributing technical blogs and architecture guides to AI Learnings.">
+  <div class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+    <div class="flex flex-col gap-4 text-center mb-12">
+      <div class="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 w-fit mx-auto">
+        <span>👥</span> Authors & Editors
+      </div>
+      <h1 class="font-display font-extrabold text-3xl sm:text-5xl tracking-tight text-foreground">
+        Our Contributors
+      </h1>
+      <p class="text-base sm:text-lg text-muted-text max-w-2xl mx-auto leading-relaxed">
+        AI Learnings is curated by machine learning engineers, systems architects, and researchers sharing battle-tested learnings from deploying AI in the real world.
+      </p>
+    </div>
+
+    <!-- Contributors Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+      {contributors.map((c) => (
+        <div class="rounded-apple border border-border-site p-6 bg-card-site hover:shadow-md transition-all flex flex-col items-center text-center gap-4 group">
+          <div class="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center font-display font-bold text-xl text-primary group-hover:scale-105 transition-transform duration-300">
+            {c.avatar}
+          </div>
+          <div class="flex flex-col gap-1">
+            <h3 class="font-display font-bold text-base text-foreground">{c.name}</h3>
+            <span class="text-xs text-primary font-medium">{c.role}</span>
+            <span class="text-[10px] text-muted-text">{c.company}</span>
+          </div>
+          <p class="text-xs text-muted-text leading-relaxed">
+            {c.bio}
+          </p>
+        </div>
+      ))}
+    </div>
+
+    <!-- Contribution invitation -->
+    <section class="border-t border-border-site pt-12 text-center flex flex-col items-center gap-4">
+      <h2 class="font-display font-bold text-xl text-foreground">Want to Write for AI Learnings?</h2>
+      <p class="text-xs text-muted-text max-w-lg leading-relaxed">
+        We welcome deep-dive blog posts, tutorials, and benchmarks on LLMs, agentic patterns, and ML system design. Check our repository or submit a topic through our contact page.
+      </p>
+      <a href="/contact" class="rounded-lg bg-primary hover:bg-primary-dark text-white font-bold text-xs py-2 px-4 shadow-sm transition-all mt-2">
+        Submit a Guest Blog &rarr;
+      </a>
+    </section>
+  </div>
+</BaseLayout>

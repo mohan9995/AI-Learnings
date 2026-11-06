@@ -1,0 +1,146 @@
+---
+title: "Implementing Hybrid Vector Search with BM25 and Qdrant in Python"
+description: "A complete practical guide to setting up hybrid search with dense embeddings, sparse lexical vectors, and reciprocal rank fusion."
+pubDate: 2026-08-19
+author: "Neural Systems Researcher"
+tags: ["Vector DB", "Qdrant", "Hybrid Search", "BM25", "Embeddings", "Python"]
+category: "Tutorials"
+difficulty: "Intermediate"
+featured: false
+faqs:
+  - question: "What is the primary benefit of native hybrid search in Qdrant?"
+    answer: "Qdrant executes sparse BM25 and dense vector queries within a single storage engine, eliminating the overhead of synchronizing external Lucene/Elasticsearch clusters with separate vector databases."
+  - question: "What sparse embedding model works best for BM25-like lexical search?"
+    answer: "FastEmbed (Qdrant) and BGM-M3 provide neural sparse embedding models like Pruned Sparse Lexical Models (e.g. SPLADE or BM25 FastEmbed) that map tokens to vocabulary-aligned sparse vector indices."
+---
+
+When building enterprise search applications, relying solely on dense vector cosine similarity leads to high failure rates when users search for exact product codes, error trace codes, or specific legal clauses.
+
+In this tutorial, we will configure a production-ready **Hybrid Search** engine using Python, `fastembed`, and `qdrant-client`.
+
+---
+
+## 1. Setup & Dependencies
+
+Install required libraries:
+
+```bash
+pip install qdrant-client fastembed
+```
+
+---
+
+## 2. Ingesting Documents with Dual Sparse + Dense Vectors
+
+```python
+from qdrant_client import QdrantClient, models
+from fastembed import TextEmbedding, SparseTextEmbedding
+
+# Initialize local in-memory or persisted Qdrant client
+client = QdrantClient(":memory:")
+COLLECTION_NAME = "hybrid_knowledge_base"
+
+# Initialize dense and sparse embedding models
+dense_model = TextEmbedding("BAAI/bge-small-en-v1.5")
+sparse_model = SparseTextEmbedding("Qdrant/bm25")
+
+# Create Collection configured with both dense and sparse vector spaces
+client.create_collection(
+    collection_name=COLLECTION_NAME,
+    vectors_config={
+        "dense": models.VectorParams(
+            size=384, # BGE Small dimension
+            distance=models.Distance.COSINE
+        )
+    },
+    sparse_vectors_config={
+        "sparse": models.SparseVectorParams(
+            index=models.SparseIndexParams(on_disk=False)
+        )
+    }
+)
+print("Collection created successfully.")
+```
+
+---
+
+## 3. Indexing Knowledge Chunks
+
+```python
+documents = [
+    "Error 503 Service Unavailable: Database connection pool exhausted during peak traffic.",
+    "Guidelines on configuring maximum database connection pool size in PostgreSQL.",
+    "Enterprise SSO integration guide using SAML 2.0 and Okta.",
+    "How to configure zero-trust networking with Cloudflare Access and WireGuard."
+]
+
+# Generate dense and sparse embeddings
+dense_embeddings = list(dense_model.embed(documents))
+sparse_embeddings = list(sparse_model.embed(documents))
+
+points = []
+for idx, (doc, dense_vec, sparse_vec) in enumerate(zip(documents, dense_embeddings, sparse_embeddings)):
+    points.append(
+        models.PointStruct(
+            id=idx,
+            vector={
+                "dense": dense_vec.tolist(),
+                "sparse": models.SparseVector(
+                    indices=sparse_vec.indices.tolist(),
+                    values=sparse_vec.values.tolist()
+                )
+            },
+            payload={"text": doc}
+        )
+    )
+
+client.upsert(collection_name=COLLECTION_NAME, points=points)
+print(f"Upserted {len(points)} documents into hybrid collection.")
+```
+
+---
+
+## 4. Querying with Reciprocal Rank Fusion (RRF)
+
+Qdrant natively supports server-side fusion queries:
+
+```python
+def query_hybrid(query_text: str, top_k: int = 2):
+    # Compute query embeddings
+    q_dense = list(dense_model.embed([query_text]))[0].tolist()
+    q_sparse = list(sparse_model.embed([query_text]))[0]
+
+    # Execute fused hybrid search
+    results = client.query_points(
+        collection_name=COLLECTION_NAME,
+        prefetch=[
+            models.Prefetch(
+                query=models.SparseVector(
+                    indices=q_sparse.indices.tolist(),
+                    values=q_sparse.values.tolist()
+                ),
+                using="sparse",
+                limit=20,
+            ),
+            models.Prefetch(
+                query=q_dense,
+                using="dense",
+                limit=20,
+            ),
+        ],
+        query=models.FusionQuery(fusion=models.Fusion.RRF),
+        limit=top_k,
+    )
+    return results
+
+# Test exact keyword query
+res = query_hybrid("Error 503")
+for p in res.points:
+    print(f"Score: {p.score:.4f} | Content: {p.payload['text']}")
+```
+
+---
+
+## 5. Summary
+
+By combining sparse BM25 vocabulary representations with dense neural embeddings, your search system achieves the best of both worlds: semantic understanding without sacrificing exact keyword recall.

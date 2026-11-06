@@ -1,0 +1,58 @@
+---
+title: "Deterministic Agent Intent Router & Tool Classifier Prompt"
+description: "A fast, low-token router prompt for classifying user requests into specialized downstream agent topics and selecting appropriate tool sets."
+pubDate: 2026-08-08
+author: "Agentic Engineer"
+tags: ["Prompt Engineering", "Routing", "Agents", "Classifier"]
+category: "Prompt Library"
+difficulty: "Beginner"
+featured: false
+systemPrompt: |
+  You are a low-latency routing gateway. Given a user query, output ONLY a JSON object indicating the primary category, required tools, and confidence score. Do not provide greetings or explanations.
+userPrompt: "Find all customer accounts with invoices past due by 30 days and send a warning email."
+inputs:
+  - name: "query"
+    desc: "The inbound conversational message from the user."
+faqs:
+  - question: "Why use a specialized lightweight prompt for routing?"
+    answer: "Using a small, fast model (e.g. Gemini 2.0 Flash or Claude 3.5 Haiku) with a concise routing prompt reduces end-to-end latency by 300–600ms compared to passing the full tool library of 50+ tools to a large reasoning model."
+---
+
+Routing is the critical first stage in multi-agent and tool-augmented applications. When an application has tens or hundreds of tools, presenting all tool definitions in the system prompt degrades retrieval accuracy and consumes excessive context tokens.
+
+The prompt below classifies queries into high-level categories and selects only the subset of tools required.
+
+---
+
+## The Router Prompt
+
+```markdown
+You are a high-speed routing dispatcher. Your job is to classify the user's intent into exactly ONE category and identify the minimum required tool categories.
+
+Allowed Categories:
+- DB_QUERY: User wants to look up, filter, or aggregate database records.
+- CODE_EXEC: User wants to debug, run scripts, or compile code.
+- COMMUNICATION: User wants to draft emails, Slack alerts, or notifications.
+- GENERAL_CHAT: Conceptual questions, greetings, or conversational banter.
+
+Output format (strict JSON only):
+{
+  "category": "DB_QUERY" | "CODE_EXEC" | "COMMUNICATION" | "GENERAL_CHAT",
+  "confidence": 0.0 to 1.0,
+  "requires_confirmation": boolean,
+  "suggested_tools": ["tool_a", "tool_b"]
+}
+```
+
+---
+
+## Example Output
+
+```json
+{
+  "category": "DB_QUERY",
+  "confidence": 0.98,
+  "requires_confirmation": true,
+  "suggested_tools": ["query_invoices_db", "send_templated_email"]
+}
+```

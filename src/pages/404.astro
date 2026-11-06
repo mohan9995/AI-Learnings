@@ -1,0 +1,34 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Page Not Found" description="The page you are looking for does not exist on Agentforce Hub. Check the URL or use our keyboard search to find articles.">
+  <div class="mx-auto max-w-md px-4 py-24 text-center flex flex-col items-center gap-6">
+    <span class="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary tracking-wide uppercase">
+      Error 404
+    </span>
+    
+    <h1 class="font-display font-extrabold text-4xl text-foreground tracking-tight">
+      Lost in the Cloud
+    </h1>
+    
+    <p class="text-sm text-muted-text leading-relaxed">
+      The requested page could not be found. Atlas Reasoning searched all metadata indexes, but this route remains ungrounded.
+    </p>
+
+    <div class="flex flex-col sm:flex-row gap-3 w-full justify-center">
+      <button 
+        onclick="document.getElementById('search-dialog').showModal();"
+        class="rounded-apple border border-border-site bg-card-site px-5 py-2.5 text-xs text-muted-text cursor-pointer hover:border-primary/50 hover:text-foreground transition-all focus:outline-none"
+      >
+        Search Portal
+      </button>
+      <a 
+        href="/" 
+        class="rounded-apple bg-primary text-white text-xs font-semibold px-5 py-2.5 hover:bg-primary-dark transition-all flex items-center justify-center"
+      >
+        Return Home
+      </a>
+    </div>
+  </div>
+</BaseLayout>

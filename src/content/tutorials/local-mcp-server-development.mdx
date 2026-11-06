@@ -1,0 +1,200 @@
+---
+title: "Building a Production-Ready SQLite MCP Server in TypeScript"
+description: "A hands-on tutorial on developing, packaging, and testing a Model Context Protocol (MCP) server that exposes database exploration tools to LLMs."
+pubDate: 2026-08-04
+author: "Mohan Sai Puttagunta"
+tags: ["MCP", "TypeScript", "SQLite", "Database", "Node.js"]
+category: "Tutorials"
+difficulty: "Intermediate"
+featured: true
+faqs:
+  - question: "How do I connect Claude Desktop or Cursor to a custom local MCP server?"
+    answer: "You add the command and arguments pointing to your built server script (e.g. 'node /path/to/dist/index.js') to the client's configuration file (e.g., claude_desktop_config.json)."
+  - question: "Why is stdio preferred for local MCP development?"
+    answer: "Standard I/O requires zero network configuration, eliminates port conflicts, and automatically binds the server lifecycle directly to the host client process."
+---
+
+In this tutorial, we will build an enterprise-safe **Model Context Protocol (MCP)** server in TypeScript. The server allows AI assistants to safely query a local SQLite database, introspect schema definitions, and execute parameterized queries without risking data corruption.
+
+---
+
+## Prerequisites
+
+- Node.js version 20+ installed
+- Basic TypeScript familiarity
+
+---
+
+## 1. Project Initialization
+
+Create a directory and initialize npm:
+
+```bash
+mkdir sqlite-mcp-server
+cd sqlite-mcp-server
+npm init -y
+npm install @modelcontextprotocol/sdk better-sqlite3 zod
+npm install -D typescript @types/better-sqlite3 @types/node tsx
+npx tsc --init
+```
+
+Update your `tsconfig.json` target and module resolution:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"]
+}
+```
+
+---
+
+## 2. Server Implementation
+
+Create `src/index.ts`:
+
+```typescript
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
+import Database from "better-sqlite3";
+
+// Connect to SQLite DB in read-only mode for safety
+const db = new Database("analytics.db", { readonly: true });
+
+const server = new Server(
+  {
+    name: "sqlite-explorer",
+    version: "1.0.0",
+  },
+  {
+    capabilities: {
+      tools: {},
+      resources: {},
+    },
+  }
+);
+
+// 1. Expose Tools
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  return {
+    tools: [
+      {
+        name: "list_tables",
+        description: "List all database tables and view names.",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },
+      {
+        name: "describe_table",
+        description: "Get column names and schema types for a specific table.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            tableName: { type: "string", description: "Name of the table" },
+          },
+          required: ["tableName"],
+        },
+      },
+      {
+        name: "query_readonly",
+        description: "Execute a read-only SELECT SQL query with a limit applied.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            sql: { type: "string", description: "SQL SELECT statement" },
+          },
+          required: ["sql"],
+        },
+      },
+    ],
+  };
+});
+
+// 2. Handle Tool Invocations
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  const { name, arguments: args } = request.params;
+
+  if (name === "list_tables") {
+    const stmt = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';");
+    const tables = stmt.all();
+    return {
+      content: [{ type: "text", text: JSON.stringify(tables, null, 2) }],
+    };
+  }
+
+  if (name === "describe_table") {
+    const { tableName } = args as { tableName: string };
+    const stmt = db.prepare(`PRAGMA table_info(${tableName});`);
+    const cols = stmt.all();
+    return {
+      content: [{ type: "text", text: JSON.stringify(cols, null, 2) }],
+    };
+  }
+
+  if (name === "query_readonly") {
+    const { sql } = args as { sql: string };
+    
+    // Safety check: ensure query begins with SELECT
+    const trimmed = sql.trim().toUpperCase();
+    if (!trimmed.startsWith("SELECT") && !trimmed.startsWith("WITH")) {
+      throw new Error("Only SELECT queries are permitted.");
+    }
+
+    const stmt = db.prepare(sql);
+    const rows = stmt.all();
+    return {
+      content: [{ type: "text", text: JSON.stringify(rows.slice(0, 50), null, 2) }],
+    };
+  }
+
+  throw new Error(`Unknown tool: ${name}`);
+});
+
+// 3. Connect via Standard Input/Output
+async function run() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.error("SQLite MCP server running on stdio.");
+}
+
+run().catch((error) => {
+  console.error("Fatal error running server:", error);
+  process.exit(1);
+});
+```
+
+---
+
+## 3. Configuring the AI Host
+
+To test this server in Claude Desktop or Cursor, update your configuration:
+
+```json
+{
+  "mcpServers": {
+    "sqlite-explorer": {
+      "command": "node",
+      "args": ["/absolute/path/to/sqlite-mcp-server/dist/index.js"]
+    }
+  }
+}
+```
+
+Now, the AI assistant can automatically list tables, inspect schema definitions, and compose correct SQL queries against your local SQLite database without manual prompt grounding!

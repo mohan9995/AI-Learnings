@@ -1,0 +1,247 @@
+---
+---
+
+<dialog 
+  id="search-dialog"
+  class="fixed top-12 sm:top-20 left-1/2 -translate-x-1/2 z-50 m-0 w-[92%] sm:w-[88%] max-w-2xl rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-0 shadow-2xl backdrop:bg-slate-950/70 backdrop:backdrop-blur-sm overflow-hidden focus:outline-none"
+>
+  <!-- Search Header Input -->
+  <div class="flex items-center gap-3.5 border-b border-slate-200 dark:border-slate-800 px-5 py-4 bg-slate-50/80 dark:bg-[#131B2A]">
+    <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+    </svg>
+    <input 
+      type="text" 
+      id="search-input"
+      placeholder="Search blogs, architecture, tutorials, prompts, releases..." 
+      class="w-full text-base bg-transparent border-none !outline-none focus:!outline-none focus:ring-0 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-900 dark:text-white font-sans font-medium shadow-none"
+      style="outline: none !important; box-shadow: none !important; border: none !important;"
+      autocomplete="off"
+    />
+    <button 
+      id="close-search-btn"
+      class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-[11px] font-mono font-semibold text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none shadow-sm transition-colors"
+    >
+      ESC
+    </button>
+  </div>
+
+  <!-- Results Body -->
+  <div id="search-results-container" class="max-h-[380px] overflow-y-auto p-3 scrollbar-thin bg-white dark:bg-[#0F172A]">
+    <div id="search-placeholder-msg" class="py-12 text-center text-sm text-slate-400 dark:text-slate-500 font-normal">
+      Type to start searching AI Learnings...
+    </div>
+    <ul id="search-results" class="flex flex-col gap-1.5 hidden">
+      <!-- Search results injected here -->
+    </ul>
+  </div>
+
+  <!-- Search Footer Shortcuts -->
+  <div class="flex items-center justify-between border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-[#131B2A] px-5 py-3 text-xs text-slate-500 dark:text-slate-400">
+    <div class="flex items-center gap-3">
+      <span class="flex items-center gap-1.5"><kbd class="font-mono text-[10px] border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded shadow-sm text-indigo-500">↑↓</kbd> Navigate</span>
+      <span class="flex items-center gap-1.5"><kbd class="font-mono text-[10px] border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded shadow-sm text-indigo-500">↵</kbd> Select</span>
+    </div>
+    <div>
+      <span class="text-[11px]">Instant client-side search</span>
+    </div>
+  </div>
+</dialog>
+
+<script>
+  interface SearchItem {
+    title: string;
+    description: string;
+    category: string;
+    url: string;
+    tags: string[];
+    content: string;
+  }
+
+  const dialog = document.getElementById('search-dialog') as HTMLDialogElement | null;
+  const searchInput = document.getElementById('search-input') as HTMLInputElement | null;
+  const resultsList = document.getElementById('search-results') as HTMLUListElement | null;
+  const placeholderMsg = document.getElementById('search-placeholder-msg');
+  const closeSearchBtn = document.getElementById('close-search-btn');
+
+  const desktopBtn = document.getElementById('search-btn-desktop');
+  const mobileBtn = document.getElementById('search-btn-mobile');
+
+  let searchIndex: SearchItem[] = [];
+  let isIndexLoaded = false;
+  let selectedIndex = -1;
+
+  // Toggle open
+  const openSearch = async () => {
+    if (!dialog) return;
+    dialog.showModal();
+    if (searchInput) searchInput.focus();
+    
+    // Lazy load index
+    if (!isIndexLoaded) {
+      try {
+        const res = await fetch('/search-index.json');
+        searchIndex = await res.json();
+        isIndexLoaded = true;
+      } catch (err) {
+        console.error("Failed to load search index:", err);
+      }
+    }
+  };
+
+  const closeSearch = () => {
+    if (!dialog) return;
+    dialog.close();
+    if (searchInput) searchInput.value = '';
+    resetResults();
+  };
+
+  const resetResults = () => {
+    selectedIndex = -1;
+    if (resultsList) {
+      resultsList.innerHTML = '';
+      resultsList.classList.add('hidden');
+    }
+    if (placeholderMsg) {
+      placeholderMsg.classList.remove('hidden');
+      placeholderMsg.textContent = 'Type to start searching AI Learnings...';
+    }
+  };
+
+  // Attach triggers
+  desktopBtn?.addEventListener('click', openSearch);
+  mobileBtn?.addEventListener('click', openSearch);
+  closeSearchBtn?.addEventListener('click', closeSearch);
+
+  // Close on backdrop click
+  dialog?.addEventListener('click', (e) => {
+    const rect = dialog.getBoundingClientRect();
+    const isInDialog = (
+      rect.top <= e.clientY && e.clientY <= rect.top + rect.height &&
+      rect.left <= e.clientX && e.clientX <= rect.left + rect.width
+    );
+    if (!isInDialog) {
+      closeSearch();
+    }
+  });
+
+  // Global hotkeys
+  window.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      openSearch();
+    }
+  });
+
+  if (window.location.hash === '#open-search') {
+    setTimeout(openSearch, 100);
+  }
+
+  // Fuzzy client-side search function
+  const performSearch = (query: string) => {
+    if (!resultsList || !placeholderMsg) return;
+    
+    const searchVal = query.trim().toLowerCase();
+    if (!searchVal) {
+      resetResults();
+      return;
+    }
+
+    const matches = searchIndex.filter(item => {
+      const terms = searchVal.split(/\s+/).filter(Boolean);
+      return terms.every(term => {
+        return (
+          item.title.toLowerCase().includes(term) ||
+          item.description.toLowerCase().includes(term) ||
+          item.category.toLowerCase().includes(term) ||
+          item.tags.some(tag => tag.toLowerCase().includes(term)) ||
+          item.content.toLowerCase().includes(term)
+        );
+      });
+    });
+
+    if (matches.length === 0) {
+      resultsList.classList.add('hidden');
+      placeholderMsg.classList.remove('hidden');
+      placeholderMsg.textContent = `No results found for "${query}"`;
+      selectedIndex = -1;
+      return;
+    }
+
+    selectedIndex = -1;
+    placeholderMsg.classList.add('hidden');
+    resultsList.classList.remove('hidden');
+
+    resultsList.innerHTML = matches.map((item, idx) => `
+      <li class="search-result-item" data-index="${idx}">
+        <a 
+          href="${item.url}" 
+          class="flex flex-col gap-1 rounded-xl p-3 transition-all hover:bg-slate-100 dark:hover:bg-slate-800/80 focus:bg-slate-100 dark:focus:bg-slate-800 focus:outline-none"
+        >
+          <div class="flex items-center justify-between">
+            <span class="font-heading font-bold text-sm text-slate-900 dark:text-white text-left">${item.title}</span>
+            <span class="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-0.5 text-[10px] font-mono font-semibold text-indigo-600 dark:text-indigo-400 tracking-wider uppercase">${item.category}</span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 text-left line-clamp-1">${item.description}</p>
+        </a>
+      </li>
+    `).join('');
+
+    // Attach click triggers to update links
+    const items = resultsList.querySelectorAll('.search-result-item');
+    items.forEach(el => {
+      el.querySelector('a')?.addEventListener('click', () => {
+        closeSearch();
+      });
+    });
+  };
+
+  // Handle keys (Arrows, Enter) inside inputs
+  searchInput?.addEventListener('input', (e) => {
+    const val = (e.target as HTMLInputElement).value;
+    performSearch(val);
+  });
+
+  dialog?.addEventListener('keydown', (e) => {
+    if (!resultsList || resultsList.classList.contains('hidden')) return;
+
+    const items = resultsList.querySelectorAll('.search-result-item') as NodeListOf<HTMLLIElement>;
+    if (items.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      selectedIndex = (selectedIndex + 1) % items.length;
+      updateActiveItem(items);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+      updateActiveItem(items);
+    } else if (e.key === 'Enter') {
+      if (selectedIndex >= 0 && selectedIndex < items.length) {
+        e.preventDefault();
+        const link = items[selectedIndex].querySelector('a');
+        if (link) {
+          link.click();
+          closeSearch();
+        }
+      }
+    }
+  });
+
+  const updateActiveItem = (items: NodeListOf<HTMLLIElement>) => {
+    items.forEach((item, idx) => {
+      const link = item.querySelector('a');
+      if (idx === selectedIndex) {
+        link?.classList.add('bg-slate-100', 'dark:bg-slate-800');
+        link?.focus();
+        item.scrollIntoView({ block: 'nearest' });
+      } else {
+        link?.classList.remove('bg-slate-100', 'dark:bg-slate-800');
+      }
+    });
+    // Return focus to input if index is cleared
+    if (selectedIndex === -1 && searchInput) {
+      searchInput.focus();
+    }
+  };
+</script>

@@ -1,0 +1,105 @@
+---
+title: "Multi-Agent Orchestration Patterns: Hierarchical, Swarm, and Event-Driven"
+description: "Architectural blueprints for structuring resilient multi-agent AI topologies, preventing state synchronization conflicts, and optimizing execution latency."
+pubDate: 2026-08-12
+author: "Agentic Engineer"
+tags: ["Agents", "Architecture", "Multi-Agent", "System Design"]
+category: "System Architecture"
+difficulty: "Advanced"
+featured: true
+faqs:
+  - question: "What is the primary failure mode of Swarm (peer-to-peer) agent architectures?"
+    answer: "Without a centralized supervisor or deterministic voting protocol, peer agents can enter self-referential conversational loops, endlessly agreeing or arguing without making computational progress."
+  - question: "How should shared state be managed between collaborating agents?"
+    answer: "Treat agent state as an append-only event log with explicit delta mutations. Rather than letting agents directly overwrite global variables, all state changes should be proposed as typed events verified by a state coordinator."
+---
+
+When transitioning beyond single-agent architectures, systems engineers must decide how multiple specialized agents communicate, coordinate, and reach consensus. 
+
+In this architecture guide, we evaluate the three canonical multi-agent topologies: **Hierarchical (Supervisor-Worker)**, **Pipeline (Choreographed)**, and **Decentralized Swarms**.
+
+---
+
+## 1. The Hierarchical (Supervisor-Worker) Topology
+
+In enterprise systems, the Supervisor-Worker pattern is the most robust and predictable pattern. A high-intelligence supervisor model (e.g. Claude 3.7 Sonnet or GPT-4o) decomposes goals, delegates sub-tasks to specialized domain workers, and validates worker deliverables.
+
+```mermaid
+graph TD
+    User([User Request]) --> Supervisor[Supervisor Agent]
+    
+    subgraph Workers[Specialized Execution Agents]
+        Supervisor -->|Delegate Research| AgentA[Research Agent]
+        Supervisor -->|Delegate Code Gen| AgentB[Coding Agent]
+        Supervisor -->|Delegate Validation| AgentC[Security & QA Agent]
+    end
+    
+    AgentA -->|Structured Findings| Supervisor
+    AgentB -->|Code Artifacts| Supervisor
+    AgentC -->|Pass/Fail Audit| Supervisor
+    
+    Supervisor --> Final([Synthesized Response])
+```
+
+### Key Advantages
+- **Determinism**: The supervisor enforces the contract before presenting output to users.
+- **Segregated Tooling**: Workers only have access to their required tools, minimizing prompt injection attack surfaces.
+- **Fail-Fast Recovery**: If the Coding Agent generates flawed code, the QA Agent reports the failure directly to the Supervisor for re-assignment.
+
+---
+
+## 2. The Sequential Pipeline (Assembly Line)
+
+When tasks follow a natural progression, sequential piping maximizes throughput while minimizing orchestrator overhead.
+
+```mermaid
+graph LR
+    Input[Raw Input] --> Ingestion[Ingestion Agent]
+    Ingestion --> Normalizer[Data Normalizer Agent]
+    Normalizer --> Synthesizer[Synthesis Agent]
+    Synthesizer --> Reviewer[Editorial Review Agent]
+    Reviewer --> Output[Approved Output]
+```
+
+### Implementation Checklist
+- Each agent receives the strictly typed output of its predecessor as input.
+- Use JSON Schema validation (e.g. Zod or Pydantic) between stages to guarantee that downstream agents never receive malformed inputs.
+
+---
+
+## 3. Managing State: The Event-Sourced Agent Bus
+
+The most dangerous anti-pattern in multi-agent design is allowing multiple agents to mutate a shared global dictionary concurrently. 
+
+Instead, implement an **Event-Sourced Message Bus**:
+
+```typescript
+// Architectural schema for Agent Event Bus
+interface AgentEvent {
+  eventId: string;
+  timestamp: number;
+  sourceAgent: string;
+  targetAgent?: string;
+  eventType: "TASK_ASSIGNED" | "TOOL_CALLED" | "OBSERVATION_RECORDED" | "CRITIQUE_SUBMITTED";
+  payload: Record<string, any>;
+}
+
+class AgentStateCoordinator {
+  private events: AgentEvent[] = [];
+
+  public emitEvent(event: AgentEvent): void {
+    this.events.push(event);
+    console.log(`[EVENT ${event.eventType}] by ${event.sourceAgent}`);
+  }
+
+  public getReconstructedState(): Record<string, any> {
+    // Replay events deterministically to derive current workspace state
+    return this.events.reduce((state, event) => {
+      // apply state transitions...
+      return state;
+    }, {});
+  }
+}
+```
+
+By enforcing event immutability, you obtain full observability, time-travel debugging, and audit logging across all agent steps.

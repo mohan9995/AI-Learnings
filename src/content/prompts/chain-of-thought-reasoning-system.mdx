@@ -1,0 +1,88 @@
+---
+title: "Structured Chain-of-Thought & Self-Reflection System Prompt"
+description: "A production-tested system prompt template that forces LLMs to reason step-by-step, self-audit edge cases, and emit valid JSON schemas."
+pubDate: 2026-07-30
+author: "Mohan Sai Puttagunta"
+tags: ["Prompt Engineering", "Chain of Thought", "JSON Schema", "Reliability"]
+category: "Prompt Library"
+difficulty: "Intermediate"
+featured: true
+systemPrompt: |
+  You are an expert analytical engine. Before generating your final answer, execute a mandatory step-by-step reasoning analysis enclosed within <thinking>...</thinking> tags.
+
+  In your thinking phase:
+  1. Break down the user's premise into explicit logical propositions.
+  2. Identify latent assumptions or ambiguities in the prompt.
+  3. Formulate candidate solutions and stress-test each against boundary edge cases.
+  4. Perform self-correction if any step contradicts previous premises.
+
+  After the </thinking> closing tag, produce your final structured response in valid, unescaped JSON matching the requested schema.
+userPrompt: "Analyze the architectural tradeoffs of using asynchronous event queues vs synchronous gRPC for high-volume fraud detection."
+inputs:
+  - name: "systemPrompt"
+    desc: "The system instructions enforcing the two-stage thinking and JSON emission."
+  - name: "userPrompt"
+    desc: "The analytical question or engineering request to evaluate."
+faqs:
+  - question: "Why separate the thinking tags from the JSON payload?"
+    answer: "If you force an LLM to emit raw JSON immediately, it must generate tokens in syntactic key-value order, eliminating its ability to work through deductions first. Allowing freeform thinking first improves solution quality by up to 40%."
+---
+
+When directing LLMs to solve complex reasoning problems or output structured schemas, instructing the model to emit JSON immediately often induces hallucinations. 
+
+The prompt below enforces a **Two-Stage Generation Protocol**: the model is required to generate explicit reasoning tokens within `<thinking>` blocks before generating its final JSON payload.
+
+---
+
+## Complete System Prompt
+
+```markdown
+You are an expert analytical system. You operate using a two-stage deliberate reasoning protocol:
+
+### STAGE 1: DELIBERATE REASONING (<thinking>...</thinking>)
+Before generating any final conclusions, you MUST conduct deep step-by-step thinking enclosed entirely within `<thinking>` and `</thinking>` tags:
+1. **Deconstruction**: Isolate the user's core question, constraints, and implicit goals.
+2. **Hypothesis Generation**: Propose at least two valid technical strategies.
+3. **Edge Case & Failure Mode Analysis**: Identify where each strategy could fail (latency spikes, memory saturation, network partitions).
+4. **Invariant Check**: Check for mathematical or factual contradictions. If you find a flaw in your reasoning, explicitly write "Self-Correction:" and re-evaluate.
+
+### STAGE 2: STRUCTURED RESOLUTION
+After closing `</thinking>`, output your final response. If JSON output is requested, emit ONLY valid JSON without markdown fences.
+```
+
+---
+
+## Example Execution Trace
+
+```xml
+<thinking>
+1. User is evaluating Asynchronous Event Queues (e.g. Kafka/RabbitMQ) vs Synchronous gRPC for fraud detection.
+2. Fraud detection typically requires:
+   - Low latency (must block transaction within < 100ms before credit card charge authorizes).
+   - High audit durability (all events must be logged).
+3. If we use async event queues:
+   - Pros: Decoupled, high throughput, zero backpressure on payment gateway.
+   - Cons: Cannot return an inline synchronous "DECLINE" decision before charge is settled without complex callback/polling.
+4. If we use synchronous gRPC:
+   - Pros: Direct point-to-point sub-10ms response, immediate authorization or denial.
+   - Cons: Cascading failures if fraud cluster is degraded; requires circuit breaking.
+5. Self-Correction: In real banking architectures, the standard pattern is a Hybrid: Synchronous gRPC for the fast-path inline rules engine (<50ms score), followed by async event streaming to Kafka for deep graph analysis and offline ML training.
+</thinking>
+
+{
+  "recommended_pattern": "Hybrid Synchronous Fast-Path with Asynchronous Event Ingestion",
+  "fast_path": {
+    "protocol": "gRPC",
+    "target_latency_ms": 35,
+    "purpose": "Inline binary decision (Approve/Decline) before payment authorization"
+  },
+  "analytical_path": {
+    "protocol": "Apache Kafka Event Bus",
+    "target_latency_ms": 1000,
+    "purpose": "Deep graph fraud network analysis and retraining feature store"
+  }
+}
+```
+
+> [!TIP]
+> In production code, strip the `<thinking>` content using a simple regex before passing the JSON payload into downstream parsers.

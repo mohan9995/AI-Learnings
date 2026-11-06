@@ -1,0 +1,92 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { SITE_NAME } from "@config";
+
+const coreValues = [
+  {
+    title: "100% Technical Depth",
+    desc: "No superficial hype. We deliver reproducible code snippets, Python & TypeScript implementations, system architectures, and mathematical intuitions for engineers."
+  },
+  {
+    title: "Battle-Tested Patterns",
+    desc: "Every article is grounded in real production engineering: multi-agent coordination, contextual RAG chunking, latency optimization, and reasoning loops."
+  },
+  {
+    title: "Open & Community Driven",
+    desc: "Knowledge should be accessible. Built with open-source tools, open standards like Model Context Protocol (MCP), and transparent architectural reviews."
+  }
+];
+---
+
+<BaseLayout title="About AI Learnings" description="Learn more about AI Learnings, a technical engineering blog and resource hub for machine learning practitioners, AI architects, and developers.">
+  <div class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+    <div class="flex flex-col gap-6 text-center mb-12">
+      <div class="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 w-fit mx-auto">
+        <span>🚀</span> The Engineering Perspective
+      </div>
+      <h1 class="font-display font-extrabold text-3xl sm:text-5xl tracking-tight text-foreground">
+        About {SITE_NAME}
+      </h1>
+      <p class="text-base sm:text-lg text-muted-text max-w-2xl mx-auto leading-relaxed">
+        AI Learnings is an independent technical engineering blog dedicated to documenting the rapid evolution of foundation models, reasoning architectures, autonomous agents, and production AI infrastructure.
+      </p>
+    </div>
+
+    <!-- Core Vision -->
+    <section class="prose mx-auto mb-16">
+      <h2>Why We Built AI Learnings</h2>
+      <p>
+        The shift from traditional machine learning to foundation models and autonomous agentic systems is one of the most consequential paradigm shifts in software history. However, building reliable, latency-efficient, and hallucination-resistant AI systems in production is exceedingly challenging.
+      </p>
+      <p>
+        Most online material either stays at a high-level marketing overview or covers toy examples that fail under real workloads. <strong>AI Learnings</strong> bridges this gap by providing:
+      </p>
+      <ul>
+        <li><strong>In-depth architectural breakdowns</strong> of frontier model advancements (test-time compute, reasoning models, KV cache optimizations).</li>
+        <li><strong>Production RAG blueprints</strong> featuring hybrid lexical-dense search, reciprocal rank fusion, and late-chunking strategies.</li>
+        <li><strong>Autonomous agent design patterns</strong> including Reflection, Tool Use, and the Model Context Protocol (MCP).</li>
+        <li><strong>Curated system prompts and evaluation frameworks</strong> for deterministic workflows.</li>
+      </ul>
+    </section>
+
+    <!-- Core Values -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+      {coreValues.map((val) => (
+        <div class="rounded-apple border border-border-site p-6 bg-card-site hover:shadow-sm transition-all">
+          <h3 class="font-display font-bold text-sm text-foreground mb-2">{val.title}</h3>
+          <p class="text-xs text-muted-text leading-relaxed">{val.desc}</p>
+        </div>
+      ))}
+    </section>
+
+    <!-- Resources Anchor -->
+    <section id="resources" class="prose mx-auto border-t border-border-site pt-12">
+      <h2>Curated AI Engineering Resources</h2>
+      <p>
+        Essential platforms and specifications referenced across our tutorials and blogs:
+      </p>
+      <ul>
+        <li>
+          <a href="https://modelcontextprotocol.org" target="_blank" rel="noopener noreferrer">
+            Model Context Protocol (MCP) Standard
+          </a> - Open specification for connecting AI assistants to data systems and local tools.
+        </li>
+        <li>
+          <a href="https://huggingface.co" target="_blank" rel="noopener noreferrer">
+            Hugging Face Hub
+          </a> - Open weights models, datasets, and tokenizer libraries.
+        </li>
+        <li>
+          <a href="https://github.com/vllm-project/vllm" target="_blank" rel="noopener noreferrer">
+            vLLM Engine
+          </a> - High-throughput and memory-efficient LLM serving with PagedAttention.
+        </li>
+        <li>
+          <a href="https://docs.astro.build" target="_blank" rel="noopener noreferrer">
+            Astro Documentation
+          </a> - High-performance web framework powering this technical portal.
+        </li>
+      </ul>
+    </section>
+  </div>
+</BaseLayout>

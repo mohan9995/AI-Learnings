@@ -1,0 +1,119 @@
+---
+import { SITE_NAME, SITE_URL, SITE_DESCRIPTION, GOOGLE_ANALYTICS_ID, GOOGLE_SEARCH_CONSOLE_ID, MICROSOFT_CLARITY_ID } from "@config";
+import Header from "@components/Header.astro";
+import Footer from "@components/Footer.astro";
+import SearchModal from "@components/SearchModal.astro";
+import "@styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  canonicalUrl?: string;
+  ogType?: "website" | "article";
+  jsonLd?: Record<string, any>[];
+}
+
+const {
+  title,
+  description = SITE_DESCRIPTION,
+  image = "/images/og-default.webp",
+  canonicalUrl = Astro.url.href,
+  ogType = "website",
+  jsonLd = [],
+} = Astro.props;
+
+const pageTitle = title ? `${title} | ${SITE_NAME}` : `${SITE_NAME} | Engineering Blog & Technical Portal`;
+---
+
+<!DOCTYPE html>
+<html lang="en" class="overflow-x-hidden max-w-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Primary Meta Tags -->
+    <title>{pageTitle}</title>
+    <meta name="title" content={pageTitle} />
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+    
+    <!-- Theme Prevention Script (Run instantly to block flash) -->
+    <script is:inline>
+      const getTheme = () => {
+        if (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) {
+          return localStorage.getItem('theme');
+        }
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      };
+      
+      const theme = getTheme();
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    </script>
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href={canonicalUrl} />
+    
+    <!-- KaTeX Math Stylesheet -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+    
+    <!-- Google Search Console -->
+    <meta name="google-site-verification" content={GOOGLE_SEARCH_CONSOLE_ID} />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content={ogType} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={new URL(image, SITE_URL)} />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content={canonicalUrl} />
+    <meta property="twitter:title" content={pageTitle} />
+    <meta property="twitter:description" content={description} />
+    <meta property="twitter:image" content={new URL(image, SITE_URL)} />
+
+    <!-- RSS Feed Link -->
+    <link rel="alternate" type="application/rss+xml" title={`${SITE_NAME} RSS Feed`} href="/rss.xml" />
+
+    <!-- JSON-LD Structured Data Schema -->
+    {jsonLd.map((schema) => (
+      <script type="application/ld+json" set:html={JSON.stringify(schema)} />
+    ))}
+
+    <!-- Google Analytics (GA4) -->
+    <script async src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`}></script>
+    <script is:inline define:vars={{ googleAnalyticsId: GOOGLE_ANALYTICS_ID }}>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', googleAnalyticsId);
+    </script>
+
+    <!-- Microsoft Clarity -->
+    <script is:inline define:vars={{ clarityId: MICROSOFT_CLARITY_ID }}>
+      (function(c,l,a,r,i,t,y){
+          c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+          t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+          y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      })(window,document,"clarity","script",clarityId);
+    </script>
+  </head>
+  <body class="bg-bg-site text-text-site font-sans overflow-x-hidden w-full max-w-full">
+    <Header />
+    
+    <main class="flex-grow">
+      <slot />
+    </main>
+
+    <Footer />
+    
+    <!-- Search Modal Trigger Overlay -->
+    <SearchModal />
+  </body>
+</html>

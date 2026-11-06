@@ -1,0 +1,89 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getCollection } from "astro:content";
+
+export async function getStaticPaths() {
+  const blogs = await getCollection("blogs");
+  const tutorials = await getCollection("tutorials");
+  const prompts = await getCollection("prompts");
+  const architecture = await getCollection("architecture");
+  const releases = await getCollection("releases");
+  const interview = await getCollection("interview");
+
+  const allItems = [
+    ...blogs.map(b => ({ ...b, categoryName: 'blogs' })),
+    ...tutorials.map(t => ({ ...t, categoryName: 'tutorials' })),
+    ...prompts.map(p => ({ ...p, categoryName: 'prompts' })),
+    ...architecture.map(arc => ({ ...arc, categoryName: 'architecture' })),
+    ...releases.map(r => ({ ...r, categoryName: 'releases' })),
+    ...interview.map(i => ({ ...i, categoryName: 'interview' })),
+  ];
+
+  // Get unique tags
+  const tags = Array.from(new Set(allItems.flatMap(item => item.data.tags || [])));
+
+  return tags.map(tag => {
+    const tagSlug = tag.toLowerCase().replace(/\s+/g, '-');
+    const filteredItems = allItems.filter(item => 
+      (item.data.tags || []).some((t: string) => t.toLowerCase().replace(/\s+/g, '-') === tagSlug)
+    );
+    
+    return {
+      params: { tag: tagSlug },
+      props: { tag, items: filteredItems }
+    };
+  });
+}
+
+const { tag, items } = Astro.props;
+---
+
+<BaseLayout title={`Articles Tagged "${tag}"`} description={`Explore technical blogs, tutorials, and architecture guides tagged with ${tag} on AI Learnings.`}>
+  <div class="mx-auto max-w-5xl px-6 py-14 sm:px-8 lg:px-12">
+    <div class="flex flex-col gap-2 border-b border-slate-200 dark:border-slate-800 pb-8 mb-10">
+      <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-2">
+        <a href="/" class="hover:underline">Home</a>
+        <span class="text-slate-300 dark:text-slate-700">/</span>
+        <span>Tags</span>
+        <span class="text-slate-300 dark:text-slate-700">/</span>
+        <span class="text-slate-900 dark:text-white font-semibold">{tag}</span>
+      </div>
+      <h1 class="font-heading font-extrabold text-3xl sm:text-5xl tracking-tight text-slate-900 dark:text-white">
+        Tag: <span class="text-indigo-600 dark:text-indigo-400">#{tag}</span>
+      </h1>
+      <p class="text-base text-slate-600 dark:text-slate-300 font-normal">
+        Showing all {items.length} AI learning entries associated with #{tag}.
+      </p>
+    </div>
+
+    <!-- Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {items.map((item) => (
+        <a href={`/${item.categoryName}/${item.id.replace(/\.[^/.]+$/, "")}`} class="flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800/90 p-7 hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/5 transition-all bg-white dark:bg-[#131B2A] group">
+          <div class="flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <span class="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-0.5 text-xs font-mono font-semibold text-indigo-600 dark:text-indigo-400 tracking-wider uppercase">
+                {item.categoryName}
+              </span>
+              <time datetime={item.data.pubDate.toISOString()} class="text-xs text-slate-500 dark:text-slate-400">
+                {item.data.pubDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </time>
+            </div>
+            <h2 class="font-heading font-bold text-base text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 leading-snug transition-colors">
+              {item.data.title}
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 line-clamp-3 leading-relaxed">
+              {item.data.description}
+            </p>
+          </div>
+          <div class="mt-6 border-t border-slate-100 dark:border-slate-800/80 pt-4 flex items-center justify-between text-xs">
+            <span class="text-slate-500 dark:text-slate-400">By {item.data.author}</span>
+            <span class="font-bold text-indigo-600 dark:text-indigo-400 group-hover:translate-x-1 transition-transform flex items-center gap-1">
+              Read More &rarr;
+            </span>
+          </div>
+        </a>
+      ))}
+    </div>
+  </div>
+</BaseLayout>
