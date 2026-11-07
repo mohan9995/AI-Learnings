@@ -16,7 +16,20 @@ interface Props {
 }
 
 const { entry, collectionName, headings } = Astro.props;
-const { title, description, author, pubDate, updatedDate, tags = [], faqs = [], related = [] } = entry.data;
+const {
+  title,
+  description,
+  author,
+  pubDate,
+  updatedDate,
+  tags = [],
+  faqs = [],
+  related = [],
+  parent,
+  previous,
+  next,
+  series,
+} = entry.data;
 
 // Dynamic Reading Time Calculation
 const wordsPerMinute = 225;
@@ -30,8 +43,27 @@ const allEntries = await getCollection(collectionName);
 const sortedEntries = allEntries.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
 const currentIndex = sortedEntries.findIndex(item => getSlug(item.id) === getSlug(entry.id));
 
-const prevEntry = currentIndex < sortedEntries.length - 1 ? sortedEntries[currentIndex + 1] : null;
-const nextEntry = currentIndex > 0 ? sortedEntries[currentIndex - 1] : null;
+// Parent article lookup (in same collection or matching slug)
+const parentEntry = parent ? (allEntries.find(item => getSlug(item.id) === parent) || null) : null;
+
+// Sibling Navigation (Previous/Next) - respects explicit sequencing or falls back to date order
+let prevEntry = null;
+if (previous) {
+  if (previous !== 'none') {
+    prevEntry = allEntries.find(item => getSlug(item.id) === previous) || null;
+  }
+} else {
+  prevEntry = currentIndex < sortedEntries.length - 1 ? sortedEntries[currentIndex + 1] : null;
+}
+
+let nextEntry = null;
+if (next) {
+  if (next !== 'none') {
+    nextEntry = allEntries.find(item => getSlug(item.id) === next) || null;
+  }
+} else {
+  nextEntry = currentIndex > 0 ? sortedEntries[currentIndex - 1] : null;
+}
 
 // Related Articles (Based on tag overlap)
 const currentTags = tags;
@@ -68,29 +100,41 @@ const articleJsonLd = {
   }
 };
 
+const breadcrumbItems = [
+  {
+    "@type": "ListItem",
+    "position": 1,
+    "name": "Home",
+    "item": SITE_URL
+  },
+  {
+    "@type": "ListItem",
+    "position": 2,
+    "name": collectionName.charAt(0).toUpperCase() + collectionName.slice(1),
+    "item": `${SITE_URL}/${collectionName}`
+  }
+];
+
+if (parentEntry) {
+  breadcrumbItems.push({
+    "@type": "ListItem",
+    "position": breadcrumbItems.length + 1,
+    "name": parentEntry.data.title,
+    "item": `${SITE_URL}/${collectionName}/${getSlug(parentEntry.id)}`
+  });
+}
+
+breadcrumbItems.push({
+  "@type": "ListItem",
+  "position": breadcrumbItems.length + 1,
+  "name": title,
+  "item": `${SITE_URL}/${collectionName}/${getSlug(entry.id)}`
+});
+
 const breadcrumbJsonLd = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
-  "itemListElement": [
-    {
-      "@type": "ListItem",
-      "position": 1,
-      "name": "Home",
-      "item": SITE_URL
-    },
-    {
-      "@type": "ListItem",
-      "position": 2,
-      "name": collectionName.charAt(0).toUpperCase() + collectionName.slice(1),
-      "item": `${SITE_URL}/${collectionName}`
-    },
-    {
-      "@type": "ListItem",
-      "position": 3,
-      "name": title,
-      "item": `${SITE_URL}/${collectionName}/${getSlug(entry.id)}`
-    }
-  ]
+  "itemListElement": breadcrumbItems
 };
 
 const faqJsonLd = faqs.length > 0 ? {
@@ -115,10 +159,16 @@ if (faqJsonLd) schemas.push(faqJsonLd);
   <div class="mx-auto max-w-6xl px-6 py-10 sm:px-8 lg:px-12">
     
     <!-- Breadcrumbs Navigation -->
-    <nav class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-8">
+    <nav class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-8 overflow-x-auto whitespace-nowrap scrollbar-none py-1">
       <a href="/" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Home</a>
       <span class="text-slate-300 dark:text-slate-700">/</span>
       <a href={`/${collectionName}`} class="capitalize hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">{collectionName}</a>
+      {parentEntry && (
+        <>
+          <span class="text-slate-300 dark:text-slate-700">/</span>
+          <a href={`/${collectionName}/${getSlug(parentEntry.id)}`} class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors truncate max-w-xs">{parentEntry.data.title}</a>
+        </>
+      )}
       <span class="text-slate-300 dark:text-slate-700">/</span>
       <span class="text-slate-800 dark:text-slate-200 font-medium truncate max-w-xs">{title}</span>
     </nav>
@@ -149,6 +199,26 @@ if (faqJsonLd) schemas.push(faqJsonLd);
       <!-- Center Article Content Column -->
       <article class="col-span-1 lg:col-span-6 flex flex-col">
         <header class="flex flex-col gap-4 border-b border-slate-200 dark:border-slate-800 pb-8 mb-8">
+          
+          {(parentEntry || series) && (
+            <div class="flex items-center gap-2">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                {series && <span class="font-semibold">{series}</span>}
+                {series && parentEntry && <span>·</span>}
+                {parentEntry && (
+                  <span>
+                    Part of{' '}
+                    <a href={`/${collectionName}/${getSlug(parentEntry.id)}`} class="underline font-semibold hover:text-indigo-900 dark:hover:text-indigo-100">
+                      {parentEntry.data.title}
+                    </a>
+                  </span>
+                )}
+              </span>
+            </div>
+          )}
           
           <!-- Meta stats -->
           <div class="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-slate-500 dark:text-slate-400">

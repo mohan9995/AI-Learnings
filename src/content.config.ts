@@ -19,6 +19,10 @@ const baseSchema = z.object({
   related: z.array(z.string()).optional(),
   featured: z.boolean().default(false),
   difficulty: z.enum(["Beginner", "Intermediate", "Advanced"]).optional(),
+  parent: z.string().optional(),
+  previous: z.string().optional(),
+  next: z.string().optional(),
+  series: z.string().optional(),
 });
 
 // Blogs Collection
