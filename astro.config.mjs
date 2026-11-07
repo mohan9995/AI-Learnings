@@ -9,7 +9,7 @@ import rehypeKatex from 'rehype-katex';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://ai-learnings.dev',
+  site: 'https://ai.mysalesforce.in',
   outDir: './docs',
   vite: {
     plugins: [tailwindcss()]
