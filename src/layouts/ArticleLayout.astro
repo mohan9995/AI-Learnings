@@ -12,10 +12,10 @@ interface Heading {
 interface Props {
   entry: any; // Astro collection entry
   collectionName: "blogs" | "tutorials" | "prompts" | "architecture" | "releases" | "interview";
-  headings: Heading[];
+  headings?: Heading[];
 }
 
-const { entry, collectionName, headings } = Astro.props;
+const { entry, collectionName, headings = [] } = Astro.props;
 const {
   title,
   description,
@@ -197,7 +197,7 @@ if (faqJsonLd) schemas.push(faqJsonLd);
       </aside>
 
       <!-- Center Article Content Column -->
-      <article class="col-span-1 lg:col-span-6 flex flex-col">
+      <article class="col-span-1 lg:col-span-9 flex flex-col">
         <header class="flex flex-col gap-4 border-b border-slate-200 dark:border-slate-800 pb-8 mb-8">
           
           {(parentEntry || series) && (
@@ -261,7 +261,7 @@ if (faqJsonLd) schemas.push(faqJsonLd);
         </header>
 
         <!-- Markdown MDX Entry Body -->
-        <div class="prose">
+        <div class="prose max-w-none">
           <slot />
         </div>
 
@@ -466,27 +466,6 @@ if (faqJsonLd) schemas.push(faqJsonLd);
           ></script>
         </section>
       </article>
-
-      <!-- Right Sidebar (Table of Contents) -->
-      <aside class="hidden lg:block lg:col-span-3">
-        <div class="sticky top-24 pr-4 flex flex-col gap-6">
-          {headings.length > 0 && (
-            <div class="flex flex-col gap-3">
-              <h4 class="font-heading font-bold text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500">Table of Contents</h4>
-              <nav class="flex flex-col gap-1.5 border-l border-slate-200 dark:border-slate-800 pl-3">
-                {headings.filter(h => h.depth <= 3).map((h) => (
-                  <a 
-                    href={`#${h.slug}`}
-                    class={`text-xs block py-1 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all leading-snug ${h.depth === 3 ? 'pl-3 text-slate-500 dark:text-slate-500' : 'font-medium'}`}
-                  >
-                    {h.text}
-                  </a>
-                ))}
-              </nav>
-            </div>
-          )}
-        </div>
-      </aside>
 
     </div>
   </div>
