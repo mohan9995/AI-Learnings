@@ -1,0 +1,113 @@
+---
+title: Multi Linear Regression
+description: Statistical and machine learning technique used to model the linear relationship between one continuous dependent variable (target) and two or more independent variables (predictors or features).
+pubDate: "2026-11-20"
+author: Mohan Sai Puttagunta
+tags: []
+category: Blogs
+featured: false
+difficulty: Beginner
+previous: simple-linear-regression
+---
+
+Equation for Multi Linear Regression
+ ŷ  = b₀ + b₁ X₁ + b₂X₂ + b₃X₃ + ..... + bₙXₙ
+
+ŷ (y-hat): Predicted value of the dependent variable X
+b₀ (Intercept): The predicted value of y when X = 0.
+b₁(Slope coefficient 1): The change in ŷ for a one-unit increase in X
+X₁(Independent Variable 1)
+
+### Assumptions of Linear Regression
+
+![Screenshot 2026-11-25 at 7.38.11 PM](/images/multi-linear-regression-screenshot-2026-11-25-at-7-38-11-pm-mww78unq.png)
+
+![Incorrect Assumptions about Linear Regression](/images/multi-linear-regression-incorrect-assumptions-about-linear-regression-mwom9726.jpeg)
+
+First graph serves the purpose of the Linear Regression but the rest 3 doesn't serve the purpose of the Linear Regression and its misleading.
+
+### Dummy Variable Trap
+
+![Dummy Variable Trap](/images/multi-linear-regression-dummy-variable-trap-mwoms33e.jpeg)
+
+![Omit one Dummy Variable](/images/multi-linear-regression-omit-one-dummy-variable-mwomx5m3.jpeg)
+
+Always eliminate  1 Dummy variable from the n number of dummy Variables available. From the above example we have 2 dummy variables i.e New York & California. Like if we have 100 Dummy variables eliminate 1 which brings down to 99.
+
+### P values & Statistical Significance in Hypothesis Testing
+
+Statistical Significance: Helps you determine whether an observed pattern, difference, or relationship in your data is likely a genuine effect or simply the result of random chance.
+
+Ex: Tossing a coin and predicting if the outcome could be Heads/Tails
+
+![Statistical Significance](/images/multi-linear-regression-statistical-significance-mwonp2h9.jpeg)
+
+### Five methods of building models
+
+1. All-in
+2. Backward Elimination
+3. Forward Selection
+4. Bidirectional Elimination
+5. Scope Comparision
+
+```typescript
+Multiple Linear Regression
+
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+dataset = pd.read_csv('50_Startups.csv')
+X = dataset.iloc[:, :-1].values
+y = dataset.iloc[:, -1].values
+
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
+ct = ColumnTransformer(transformers=[('encoder', OneHotEncoder(), [3])], remainder='passthrough')
+X = np.array(ct.fit_transform(X))
+
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
+
+
+from sklearn.linear_model import LinearRegression
+regressor = LinearRegression()
+regressor.fit(X_train, y_train)
+
+
+y_pred = regressor.predict(X_test)
+np.set_printoptions(precision=2)
+print(np.concatenate((y_pred.reshape(len(y_pred),1), y_test.reshape(len(y_test),1)),1))
+
+
+//Making a single prediction (for example the profit of a startup with R&D Spend = 160000, Administration Spend = 130000, Marketing Spend = 300000 and State = 'California')
+print(regressor.predict([[1, 0, 0, 160000, 130000, 300000]]))
+
+
+//Therefore, our model predicts that the profit of a Californian startup which spent 160000 in R&D, 130000 in Administration and 300000 in Marketing is $ 181566,92.
+
+//Important note 1: Notice that the values of the features were all input in a double pair of square brackets. That's because the "predict" method always expects a 2D array as the format of its inputs. And putting our values into a double pair of square brackets makes the input exactly a 2D array. Simply put:
+
+//1,0,0,160000,130000,300000→scalars 
+
+//[1,0,0,160000,130000,300000]→1D array 
+
+//[[1,0,0,160000,130000,300000]]→2D array 
+
+//Important note 2: Notice also that the "California" state was not input as a string in the last column but as "1, 0, 0" in the first three columns. That's because of course the predict method expects the one-hot-encoded values of the state, and as we see in the second row of the matrix of features X, "California" was encoded as "1, 0, 0". And be careful to include these values in the first three columns, not the last three ones, because the dummy variables are always created in the first columns.
+
+
+
+//Getting the final linear regression equation with the values of the coefficients
+
+print(regressor.coef_)
+print(regressor.intercept_)
+
+
+//Therefore, the equation of our multiple linear regression model is:
+
+//Profit=86.6×Dummy State 1−873×Dummy State 2+786×Dummy State 3+0.773×R&D Spend+0.0329×Administration+0.0366×Marketing Spend+42467.53
+
+//Important Note: To get these coefficients we called the "coef_" and "intercept_" attributes from our regressor object. Attributes in Python are different than methods and usually return a simple value or an array of values.
+```
